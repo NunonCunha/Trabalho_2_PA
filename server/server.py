@@ -1,57 +1,145 @@
+
 import socket
+#biblioteca para converter qualquer tipo de dado em binário
+import marshal
+#Biblioteca para o uso de threadings
 import threading
+#Biblioteca para utilizar a função encoding para utilização de caracteres especiais no ficheiro
+import codecs
+#Biblioteca para trabalhar com datas e horas
+import datetime
 
-#Porto de connecção entre o servidor e o cliente
-PORTA = 7000
-#Nome do servidor, a função permite obter o nome do computador de forma dinâmica, assim o nosso programa pode correr em diferentes computadores
-nome_servidor = socket.gethostbyname(socket.gethostname())
-#Tupla de dados a passar para a connection
-ADDR = (nome_servidor,PORTA)
-#Formato em que queremos os dados depois de descodificados
-FORMATO = "utf-8"
-#variavel que passa informação de que a ligação foi terminada
-DESLIGAR_LIGACAO = "Ligação Terminada"
+# Numero de porta na qual o servidor estara esperando Ligações.
+serverPort = 7000
+# Criar o socket
+socketServidor = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# Associa o socket á porta escolhida, O Primeiro argumento vazio indica
+# que aceitamos ligações em qualquer interface de rede desse host
+socketServidor.bind(('', serverPort))
+# Configura o socket para aceitar ligações
+socketServidor.listen()
 
-#Cria a ligação para o servidor receber as ligações dos clientes neste caso TCP
-servidor = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-#Faz a associação do socket com a porta e o nome do servidor
-servidor.bind(ADDR)
+#Função principal que vai ser chamada no menu no final do programa
+def main(path):
+    #Abertura do ficheiro, o bloco Try permite que o utilizador receba uma mensagem personalizada caso não seja possivel abrir o ficheiro
+    try:
+        file = open(f"{path}", 'r',encoding='utf-8')
+    except:
+        print("\n[Servidor]Erro ao abrir o ficheiro, O programa vai terminar")
+        return "[Cliente]Erro ao abrir o ficheiro, O programa vai terminar"
+        exit()
 
-#Função que vai tratar individualmente cada cliente
-def cliente (connection, endereco):
-    print(f"O cliente {endereco} ligou-se.")
+    #leitura do ficheiro para uma lista
+    texto = file.read().lower()
 
-    #Loop que fica a espera de informação do CLiente
-    while 1:
-        #Recebe os dados do cliente
-        dados_cliente = connection.recv(1024).decode(FORMATO)
-        if dados_cliente == DESLIGAR_LIGACAO:
-            break
-            
-        print(dados_cliente)
+    #Fecha a ligação ao ficheiro
+    file.close()
 
-        connection.close()
+    #Cria uma lista com caracteres
+    pont_list_chr=[]
+
+    def chr_list(begin, end):
+        #lê um inteiro e converte em caracter, e adiciona á lista
+        for i in range(begin, end):
+            pont_list_chr.append(chr(i))
+
+    #Range de caracteres na tabela ASCII
+    chr_list(33,48)
+    chr_list(58,65)
+    chr_list(91,97)
+    chr_list(123,127)
+
+    #Função para remover todos os caracteres especiais
+    def remove_char(text):   
+
+        for char in pont_list_chr:
+                text = text.replace(char, '')
+        return text
+
+    #Atribui a string a variavel texto mas sem os caracteres especiais
+    texto = remove_char(texto)
+
+    #Função para converter a String sem os caracteres especiais em lista
+    #A função strip() remove os espaços no inicio e fim da string
+    def convert_list(text):
+
+        for line in text:
+            line = line.strip()
+        lista = list(text.split())
+        return lista
+
+    #Cria uma lista de palavras separadas por espaço
+    lista_final = convert_list(texto)
+
+    #Função para criar um dicionario com os pares de palavras e a sua ocorrencia no texto lido
+    def get_words_count(lista):
+
+        dic = {}
+        counter = 0
+        for word in lista:
+            if word in dic:
+                dic[word] = dic[word] + 1
+            else:
+                dic[word] = 1
+        
+        return dic
+
+    #Cria um novo dicionário com a contagem das palavras
+    dicionario = get_words_count(lista_final)
+
+    #Função para organizar o dicionário e fazer print ordenado
+    def order_score(dic):
+        '''ordenação do dicionário com função lambda em que a comparação é feita com o valor x[1]
+        utilizamos o reverse=True para alterar a ordem do sorted()
+        referencia para a função lambda. (https://docs.python.org/3/reference/expressions.html#lambda) 
+        (https://towardsdatascience.com/two-simple-method-to-sort-a-python-dictionary-a7907c266dba)'''
+
+        dic = sorted(dic.items(), key=lambda x: x[1], reverse=True)
+
+        # Ciclo para percorrer o dicionario, mostra a palavras e o valor, das 20 mais utilizadas
+        lugar = 1
+        while lugar < 20:
+            for i in dic[:20]:        
+                print(lugar,"ª -",i[0], i[1])
+                lugar += 1    
 
 
+    #Execução das funções do programa
+    order_score(dicionario)  
+
+def pedido_Cliente(socketCliente):
     
+    # Recebe os dados do cliente
+    pacote = socketCliente.recv(1024)
+    #Descodifica os dados recebidos
+    path = marshal.loads(pacote)
 
-#Função que inicia o servidor, ficando a espera que o cliente se ligue
-#Trata de todas as ligações dos clientes
-def start():
-    #Coloca o servidor a espera de ligações
-    servidor.listen()
+    #Informação dos dados recebidos pelo servidor
+    print(f"Servidor recebeu o pacote: {path}")
+    print(type(path))
 
-    while True:
-        #Guarda a informação da ligação e do endereço do cliente
-        connection, endereco =  servidor.accept()
-        #Criação da Thread para o cliente
-        thread = threading.Thread(target=cliente, args=(connection, endereco))
-        #iniciar a thread
-        thread.start()
-        #Este comando permite obter o numero de ligações activas ao nosso servidor
-        #Temos de colocar -1 porque existe sempre uma thread activa start() que está a espera de novas ligações
-        print(f"Número de ligações {threading.active_count() - 1}")
+    # Executa a função main para obter as palavras
+    print("A processar os Dados...")
+    lista_div = main(path)
 
-print("O Servidor está a iniciar...")
-start()
 
+    # Envia mensagem de resposta para o cliente
+    socketCliente.send(marshal.dumps(lista_div))
+    print(f"[Servidor] Lista de palavras enviadas ao cliente")
+
+    # Fecha a conexão
+    socketCliente.close()
+
+print ('O servidor esta pronto para receber pacotes...')
+
+# Loop infinito para tratar diversas ligações
+while True:
+    # Aguardar nova Ligação
+    print ('A Aguardar Ligações...')
+    connectionSocket, addr = socketServidor.accept()
+
+    #Trata o pedido do cliente com threads
+    t = threading.Thread(target=pedido_Cliente, args=(connectionSocket,))
+
+    # Inicia a thread
+    t.start()
