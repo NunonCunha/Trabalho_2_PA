@@ -116,7 +116,7 @@ def main(path):
 def pedido_Cliente(socketCliente):
     
     # Recebe os dados do cliente
-    pacote = socketCliente.recv(1024)
+    pacote = socketCliente.recv(4096)
     #Descodifica os dados recebidos
     path = marshal.loads(pacote)
 
@@ -144,8 +144,12 @@ while True:
     print ('A Aguardar Ligações...')
     connectionSocket, addr = socketServidor.accept()
 
+
     #Trata o pedido do cliente com threads
     t = threading.Thread(target=pedido_Cliente, args=(connectionSocket,))
 
     # Inicia a thread
     t.start()
+
+
+    
