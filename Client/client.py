@@ -2,19 +2,22 @@ from socket import *
 import struct
 import marshal
 
-serverName = 'localhost' # Ou '127.0.0.1'
+#nome ou ip do servidor, como a chamada é local utilizamos localhost ou 127.0.0.1
+serverName = 'localhost'
+#Porta do servidor que está a escuta para esta ligação
 serverPort = 7000 
 
+#Bloco de código de ligação ao servidor, caso não seja possível é devolvido um erro
 try:
 	# Criacao do socket
 	socket_Cliente = socket(AF_INET, SOCK_STREAM)
-	# Conexao com o servidor
+	# ligação ao servidor
 	socket_Cliente.connect((serverName,serverPort))
 except Exception as m:
 	print("Erro ao conectar!")
 	quit()
 
-
+#Função principal, menu do cliente
 def main ():
     print("***********************************")
     print("* Trabalho 1 Programação Avançada *")
@@ -39,7 +42,7 @@ def main ():
     while True:    
 
         if option == '1':
-            path = "pg34719.txt"
+            path = "Livros\pg34719.txt"
             return path
             break
         elif option == '2':
@@ -49,7 +52,7 @@ def main ():
         elif option == '3':
             path = "Livros\pg1661-0.txt"
             return path
-            #Função que para a execução do programa
+            #Função que pára a execução do programa
             break
         elif option == '4':
             path = "Livros\pg4078.txt"
@@ -68,9 +71,23 @@ def main ():
             option = input(("Escolha outra opção: "))
 
 
+#Função para fazer o print das palavras recebidas
+def imprimir_lista(lista):
+
+    for i in range(len(lista)):
+        print(lista[i])
+
+#Envio dos dados introduzidos pelo cliente para o servidor
 socket_Cliente.send(marshal.dumps(main()))
-data = socket_Cliente.recv(1024)
-lista_palavras = marshal.loads(data)
-print(lista_palavras)
+
+#Dados racabidos do servidor
+palavras = socket_Cliente.recv(1024)
+#decode dos dados recebidos
+lista_palavras = marshal.loads(palavras)
+
+#chamada da função para fazer o print das palavras
+imprimir_lista(lista_palavras)
+
+#Fecha o socket
 socket_Cliente.close()
 

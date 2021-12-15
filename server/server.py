@@ -19,6 +19,9 @@ socketServidor.bind(('', serverPort))
 # Configura o socket para aceitar ligações
 socketServidor.listen()
 
+#Lista para envio de palavras para o cliente
+lista_palavras_cliente = []
+
 #Função principal que vai ser chamada no menu no final do programa
 def main(path):
     #Abertura do ficheiro, o bloco Try permite que o utilizador receba uma mensagem personalizada caso não seja possivel abrir o ficheiro
@@ -98,15 +101,18 @@ def main(path):
 
         # Ciclo para percorrer o dicionario, mostra a palavras e o valor, das 20 mais utilizadas
         lugar = 1
+
         while lugar < 20:
-            for i in dic[:20]:        
-                print(lugar,"ª -",i[0], i[1])
-                lugar += 1    
+            for i in dic[:20]:     
+                lista_palavras_cliente.append(f"{lugar} º - {i[0]} - {i[1]} ocorrências")
+                lugar += 1   
+                
 
 
     #Execução das funções do programa
     order_score(dicionario)  
 
+#Função que trata os pedidos dos clientes
 def pedido_Cliente(socketCliente):
     
     # Recebe os dados do cliente
@@ -116,15 +122,15 @@ def pedido_Cliente(socketCliente):
 
     #Informação dos dados recebidos pelo servidor
     print(f"Servidor recebeu o pacote: {path}")
-    print(type(path))
 
     # Executa a função main para obter as palavras
     print("A processar os Dados...")
-    lista_div = main(path)
 
+    #Função para tratar as palavras
+    main(path)
 
     # Envia mensagem de resposta para o cliente
-    socketCliente.send(marshal.dumps(lista_div))
+    socketCliente.send(marshal.dumps(lista_palavras_cliente))
     print(f"[Servidor] Lista de palavras enviadas ao cliente")
 
     # Fecha a conexão
